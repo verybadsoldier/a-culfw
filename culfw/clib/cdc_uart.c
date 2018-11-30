@@ -96,6 +96,7 @@ void cdc_uart_init(void) {
 
 
 void cdc_uart_task(void) {
+  CDCDSerialDriver_Write("abcde", 5, 0, 2);
 
 #if CDC_COUNT > 1
   for(uint8_t x = 0;x<CDC_COUNT-1;x++) {
