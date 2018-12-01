@@ -3,6 +3,9 @@
 #include "led.h"
 #include "ringbuffer.h"
 
+// bitmask of CDCs to call ReceiveNext for
+int doCdcReceiveNext = 0;
+
 #ifdef ARM
 #include "display.h"
 
@@ -75,6 +78,14 @@ CDC_Task(void)
     return;
 
 #ifdef ARM
+
+  // check for which CDCs "receive_next" has to be called
+  for(int i=0; i < CDC_COUNT; ++i) {
+    if (!(doCdcReceiveNext & 1 << i))
+        continue;
+    CDC_Receive_next(i);
+    doCdcReceiveNext &= 0 << i;
+  }
 
   if(!inCDC_TASK){ // USB -> RingBuffer
 

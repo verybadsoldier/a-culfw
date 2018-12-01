@@ -51,6 +51,8 @@ static uint8_t inbyte1;
 static uint8_t inbyte2;
 static uint8_t inbyte3;
 
+extern int doCdcReceiveNext;
+
 /* USART1 init function */
 
 void MX_USART1_UART_Init(void)
@@ -283,13 +285,13 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
     UART_Tx_Callback();
 #endif
   } else if(UartHandle->Instance==USART2) {
-    CDC_Receive_next(CDC1);
+    doCdcReceiveNext |= 1 << CDC1;
 #ifdef HAS_WIZNET
     NET_Receive_next(NET1);
 #endif
 
   } else if(UartHandle->Instance==USART3) {
-    CDC_Receive_next(CDC2);
+    doCdcReceiveNext |= 1 << CDC2;
 #ifdef HAS_WIZNET
     NET_Receive_next(NET2);
 #endif
