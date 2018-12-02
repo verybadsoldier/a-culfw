@@ -28,13 +28,24 @@ uint8_t CDC_Tx_buffer[CDC_COUNT-1][CDC_DATA_HS_MAX_PACKET_SIZE];
 uint8_t CDC_Tx_len[CDC_COUNT-1];
 rb_t UART_Rx_Buffer[CDC_COUNT-1];
 
+uint8_t* CDC_UartTx_busy_buffer[CDC_COUNT];
+uint32_t* CDC_UartTx_busy_buffer_len[CDC_COUNT];
+
 uint8_t CDCDSerialDriver_Receive_Callback1(uint8_t* Buf, uint32_t *Len) {
-  HAL_UART_Write(0, Buf, (uint16_t)*Len);
+  HAL_StatusTypeDef rc = HAL_UART_Write(0, Buf, (uint16_t)*Len);
+  if (rc == HAL_BUSY) {
+    CDC_UartTx_busy_buffer[1] = Buf;
+    CDC_UartTx_busy_buffer_len[1] = Len;
+  }
   return 0;
 }
 
 uint8_t CDCDSerialDriver_Receive_Callback2(uint8_t* Buf, uint32_t *Len) {
-  HAL_UART_Write(1, Buf, (uint16_t)*Len);
+  HAL_StatusTypeDef rc = HAL_UART_Write(1, Buf, (uint16_t)*Len);
+  if (rc == HAL_BUSY) {
+    CDC_UartTx_busy_buffer[2] = Buf;
+    CDC_UartTx_busy_buffer_len[2] = Len;
+  }
   return 0;
 }
 
@@ -96,9 +107,26 @@ void cdc_uart_init(void) {
 
 
 void cdc_uart_task(void) {
-  CDCDSerialDriver_Write("abcde", 5, 0, 2);
+  // CDCDSerialDriver_Write("abcde", 5, 0, 2);
 
 #if CDC_COUNT > 1
+
+  for(uint8_t x = 1;x<CDC_COUNT;x++) {
+    if (CDC_UartTx_busy_buffer_len[x] > 0) {
+      HAL_StatusTypeDef rc = HAL_UART_Write(x - 1, CDC_UartTx_busy_buffer[x], (uint16_t)*CDC_UartTx_busy_buffer_len[x]);
+      if (rc == HAL_OK) {
+        CDC_UartTx_busy_buffer[x] = 0;
+        CDC_UartTx_busy_buffer_len[x] = 0;
+      }
+    }
+
+    if(!CDC_rx_next[x])
+      continue;
+
+    if (CDC_Receive_next(x) != USBD_BUSY)
+      CDC_rx_next[x] = 0;
+  }
+
   for(uint8_t x = 0;x<CDC_COUNT-1;x++) {
     if(UART_Rx_Buffer[x].nbytes) {
       while(UART_Rx_Buffer[x].nbytes && CDC_Tx_len[x] < CDC_DATA_HS_MAX_PACKET_SIZE) {

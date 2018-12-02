@@ -39,6 +39,7 @@
 #endif
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_cdc.h"
+#include "board.h"
 /* USER CODE BEGIN INCLUDE */
 /* USER CODE END INCLUDE */
 
@@ -60,6 +61,10 @@
 /**
   * @}
   */ 
+
+ extern uint8_t CDC_rx_next[CDC_COUNT];
+ extern uint8_t* CDC_UartTx_busy_buffer[CDC_COUNT];
+ extern uint32_t* CDC_UartTx_busy_buffer_len[CDC_COUNT];
 
 /** @defgroup USBD_CDC_IF_Exported_Types
   * @{
@@ -118,7 +123,7 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len, uint8_t cdc_num);
 /* USER CODE BEGIN EXPORTED_FUNCTIONS */
 unsigned char CDCDSerialDriver_Write(void *data, unsigned int size, void* dummy1, uint8_t CDC_num);
 unsigned char CDC_isConnected(uint8_t cdc_num);
-void CDC_Receive_next (uint8_t cdc_num);
+uint8_t CDC_Receive_next (uint8_t cdc_num);
 /* USER CODE END EXPORTED_FUNCTIONS */
 /**
   * @}

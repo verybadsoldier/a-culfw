@@ -95,6 +95,7 @@ uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 /* USER CODE BEGIN PRIVATE_VARIABLES */
 
 uint8_t CDC_connected[CDC_COUNT];
+uint8_t CDC_rx_next[CDC_COUNT];
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -135,6 +136,7 @@ USBD_CDC_ItfTypeDef USBD_Interface_fops_FS =
   CDC_Receive_FS
 };
 
+
 /* Private functions ---------------------------------------------------------*/
 /**
   * @brief  CDC_Init_FS
@@ -149,6 +151,9 @@ static int8_t CDC_Init_FS(void)
   for (unsigned x=0; x<CDC_COUNT; x++) {
     USBD_CDC_SetTxBuffer(&hUsbDeviceFS, NULL, 0,x);
     USBD_CDC_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS,x);
+    CDC_rx_next[x] = 0;
+    CDC_UartTx_busy_buffer[x] = 0;
+    CDC_UartTx_busy_buffer_len[x] = 0;
   }
   return (USBD_OK);
   /* USER CODE END 3 */ 
@@ -380,12 +385,15 @@ unsigned char CDC_isConnected(uint8_t cdc_num)
   return 0;
 }
 
-void CDC_Receive_next (uint8_t cdc_num)
+int doCdcReceive = 0;
+
+uint8_t CDC_Receive_next (uint8_t cdc_num)
 {
   if((cdc_num < CDC_COUNT) && (CDC_isConnected(cdc_num))) {
     USBD_CDC_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS,cdc_num);
-    USBD_CDC_ReceivePacket(&hUsbDeviceFS, cdc_num);
+    return USBD_CDC_ReceivePacket(&hUsbDeviceFS, cdc_num);
   }
+  return USBD_OK;
 }
 
 /* USER CODE END PRIVATE_FUNCTIONS_IMPLEMENTATION */

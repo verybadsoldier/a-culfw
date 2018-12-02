@@ -124,9 +124,19 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
   * @param  epnum: Endpoint Number
   * @retval None
   */
-void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
+HAL_StatusTypeDef HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
 {
-  USBD_LL_DataInStage((USBD_HandleTypeDef*)hpcd->pData, epnum, hpcd->IN_ep[epnum].xfer_buff);
+  USBD_StatusTypeDef rc = USBD_LL_DataInStage((USBD_HandleTypeDef*)hpcd->pData, epnum, hpcd->IN_ep[epnum].xfer_buff);
+
+  switch(rc) {
+  case USBD_OK:
+    return HAL_OK;
+  case USBD_BUSY:
+    return HAL_BUSY;
+  case USBD_FAIL:
+    return HAL_ERROR;
+  }
+  return HAL_ERROR;
 }
 
 /**
@@ -446,12 +456,24 @@ USBD_StatusTypeDef  USBD_LL_Transmit (USBD_HandleTypeDef *pdev,
   * @param  size: Data size
   * @retval USBD Status
   */
-USBD_StatusTypeDef  USBD_LL_PrepareReceive(USBD_HandleTypeDef *pdev, 
+USBD_StatusTypeDef  USBD_LL_PrepareReceive(USBD_HandleTypeDef *pdev,
                                            uint8_t  ep_addr,                                      
                                            uint8_t  *pbuf,
                                            uint16_t  size)
 {
-  HAL_PCD_EP_Receive((PCD_HandleTypeDef*) pdev->pData, ep_addr, pbuf, size);
+  HAL_StatusTypeDef rc = HAL_PCD_EP_Receive((PCD_HandleTypeDef*) pdev->pData, ep_addr, pbuf, size);
+
+  switch(rc) {
+  case HAL_OK:
+    return USBD_OK;
+  case HAL_TIMEOUT:
+  case HAL_ERROR:
+    return USBD_FAIL;
+  case HAL_BUSY:
+    return USBD_BUSY;
+  }
+
+  // we don't expect to get there
   return USBD_OK;
 }
 

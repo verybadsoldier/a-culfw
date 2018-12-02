@@ -283,13 +283,15 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
     UART_Tx_Callback();
 #endif
   } else if(UartHandle->Instance==USART2) {
-    CDC_Receive_next(CDC1);
+    if (CDC_Receive_next(CDC1) == USBD_BUSY)
+      CDC_rx_next[CDC1] = 1;
 #ifdef HAS_WIZNET
     NET_Receive_next(NET1);
 #endif
 
   } else if(UartHandle->Instance==USART3) {
-    CDC_Receive_next(CDC2);
+    if (CDC_Receive_next(CDC2) == USBD_BUSY)
+      CDC_rx_next[CDC2] = 1;
 #ifdef HAS_WIZNET
     NET_Receive_next(NET2);
 #endif
@@ -332,19 +334,20 @@ uint32_t HAL_UART_Get_Baudrate(uint8_t UART_num) {
   return 0;
 }
 
-void HAL_UART_Write(uint8_t UART_num, uint8_t* Buf, uint16_t Len) {
+HAL_StatusTypeDef HAL_UART_Write(uint8_t UART_num, uint8_t* Buf, uint16_t Len) {
+  HAL_StatusTypeDef rc;
   switch(UART_num) {
   case 0:
-    HAL_UART_Transmit_IT(&huart2, Buf, Len);
+    rc = HAL_UART_Transmit_IT(&huart2, Buf, Len);
     break;
   case 1:
-    HAL_UART_Transmit_IT(&huart3, Buf, Len);
+    rc = HAL_UART_Transmit_IT(&huart3, Buf, Len);
     break;
   case UART_NUM:
-    HAL_UART_Transmit_IT(&huart1, Buf, Len);
+    rc = HAL_UART_Transmit_IT(&huart1, Buf, Len);
     break;
   }
-  return;
+  return rc;
 }
 
 void HAL_UART_init(uint8_t UART_num) {

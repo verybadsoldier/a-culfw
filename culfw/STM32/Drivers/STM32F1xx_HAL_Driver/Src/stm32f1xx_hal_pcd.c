@@ -661,11 +661,12 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
   * @param  epnum: endpoint number
   * @retval None
   */
- __weak void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
+ __weak HAL_StatusTypeDef HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
 {
   /* Prevent unused argument(s) compilation warning */
   UNUSED(hpcd);
   UNUSED(epnum);
+  return HAL_OK;
   /* NOTE : This function should not be modified, when the callback is needed,
             the HAL_PCD_DataInStageCallback could be implemented in the user file
    */
@@ -1353,7 +1354,9 @@ static HAL_StatusTypeDef PCD_EP_ISR_Handler(PCD_HandleTypeDef *hpcd)
         }
         else
         {
-          HAL_PCD_EP_Receive(hpcd, ep->num, ep->xfer_buff, ep->xfer_len);
+          HAL_StatusTypeDef rc = HAL_PCD_EP_Receive(hpcd, ep->num, ep->xfer_buff, ep->xfer_len);
+          if (rc == HAL_BUSY)
+            return HAL_BUSY;
         }
         
       } /* if((wEPVal & EP_CTR_RX) */
@@ -1404,11 +1407,15 @@ static HAL_StatusTypeDef PCD_EP_ISR_Handler(PCD_HandleTypeDef *hpcd)
         if (ep->xfer_len == 0)
         {
           /* TX COMPLETE */
-          HAL_PCD_DataInStageCallback(hpcd, ep->num);
+          HAL_StatusTypeDef rc = HAL_PCD_DataInStageCallback(hpcd, ep->num);
+          if (rc == HAL_BUSY)
+            return rc;
         }
         else
         {
-          HAL_PCD_EP_Transmit(hpcd, ep->num, ep->xfer_buff, ep->xfer_len);
+          HAL_StatusTypeDef rc = HAL_PCD_EP_Transmit(hpcd, ep->num, ep->xfer_buff, ep->xfer_len);
+          if (rc == HAL_BUSY)
+            return HAL_BUSY;
         }
       } 
     }
