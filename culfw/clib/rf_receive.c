@@ -295,9 +295,9 @@ void checkForRepeatedPackage(uint8_t *datatype, bucket_t *b) {
       if (packetCheckValues.isrep == 1 && packetCheckValues.isnotrep == 0) { 
         packetCheckValues.isnotrep = 1;
         packetCheckValues.packageOK = 1;
-      } else if (packetCheckValues.isrep == 1) {
+      } else if (packetCheckValues.isrep == 1) { // && isnotrep == 1
         packetCheckValues.packageOK = 0;
-      } else {
+      } else { // isrep == 0
         packetCheckValues.isnotrep = 0;
       }
   } else {
@@ -453,6 +453,7 @@ RfAnalyze_Task(void)
       datatype = TYPE_HRM;
     }
 #endif
+   uint8_t isnotrep_reset = 0u;
 
   if(datatype && (TX_REPORT & REP_KNOWN)) {
 
@@ -462,14 +463,18 @@ RfAnalyze_Task(void)
     if(!(TX_REPORT & REP_REPEATED)) {      // Filter repeated messages
       
       // compare the data
+      // VBS: if length equal but content different
       if(roby == oby) {
         for(roby = 0; roby < oby; roby++)
           if(robuf[roby] != obuf[roby]) {
             packetCheckValues.isnotrep = 0;
+            isnotrep_reset = 1;
             break;
           }
         if(roby == oby && (ticks - reptime[CC_INSTANCE] < REPTIME)) // 38/125 = 0.3 sec
+        {
           packetCheckValues.isrep = 1;
+        }
       }
 
       // save the data
@@ -487,12 +492,22 @@ RfAnalyze_Task(void)
         (obuf[3] & 0x70) == 0x70))
       packetCheckValues.isrep = 1;
 
+    uint8_t dbg = 0x0F & (isnotrep_reset << 2 | (packetCheckValues.isnotrep << 1) & 0x02 | packetCheckValues.isrep & 0x01);
     checkForRepeatedPackage(&datatype, b);
 
 #if defined(HAS_RF_ROUTER) && defined(HAS_FHT_80b)
     if(datatype == TYPE_FHT && rf_router_target && !fht_hc0) // Forum #50756
       packetCheckValues.packageOK = 0;
 #endif
+
+    int wasNotOk = 0;
+    // vbs
+    if (!packetCheckValues.packageOK) {
+        packetCheckValues.packageOK = 1;
+        wasNotOk = 1;
+    }
+    // end vbs
+
 
     if(packetCheckValues.packageOK) {
       MULTICC_PREFIX();
@@ -514,7 +529,11 @@ RfAnalyze_Task(void)
       if(nibble)
         DH(obuf[oby]&0xf,1);
       if(TX_REPORT & REP_RSSI)
-        DH2(cc1100_readReg(CC1100_RSSI));
+        if (wasNotOk)
+          DH2(dbg);
+        else
+          DH2(0xf0 | dbg);
+          //DH2(cc1100_readReg(CC1100_RSSI));
 #if defined(HAS_TCM97001)
         if (b->state == STATE_TCM97001) {
 		  DC(';');
