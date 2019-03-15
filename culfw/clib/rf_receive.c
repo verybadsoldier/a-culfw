@@ -55,6 +55,8 @@
 #include "rf_mode.h"
 #include "multi_CC.h"
 
+uint8_t g_reset_input_src = 0u;
+
 #ifdef USE_HAL
 #include "hal.h"
 #endif
@@ -532,7 +534,8 @@ RfAnalyze_Task(void)
         if (wasNotOk)
           DH2(dbg);
         else
-          DH2(0xf0 | dbg);
+          DH2(g_reset_input_src << 4| dbg);
+          g_reset_input_src = 0;
           //DH2(cc1100_readReg(CC1100_RSSI));
 #if defined(HAS_TCM97001)
         if (b->state == STATE_TCM97001) {
@@ -604,6 +607,7 @@ RfAnalyze_Task(void)
 #endif
 }
 
+
 void reset_input(void)
 {
   maxLevel[CC_INSTANCE]=0;
@@ -669,6 +673,7 @@ ISR(TIMER1_COMPA_vect)
 
   if(bucket_array[CC_INSTANCE][bucket_in[CC_INSTANCE]].state < STATE_COLLECT ||
      bucket_array[CC_INSTANCE][bucket_in[CC_INSTANCE]].byteidx < 2) {    // false alarm
+    g_reset_input_src = 2;
     reset_input();
     return;
 
@@ -680,6 +685,7 @@ ISR(TIMER1_COMPA_vect)
     if(TX_REPORT & REP_BITS)
       DS_P(PSTR("BOVF\r\n"));            // Bucket overflow
 #endif
+    g_reset_input_src = 3;
 
     reset_input();
 
@@ -847,6 +853,7 @@ ISR(CC1100_INTVECT)
     if(c < TSCALE(750))
       return;
     if(c > TSCALE(1250)) {
+      g_reset_input_src = 4;
       reset_input();
       return;
     }
@@ -858,6 +865,7 @@ ISR(CC1100_INTVECT)
     if(c < TSCALE(375))
       return;
     if(c > TSCALE(625)) {
+      g_reset_input_src = 5;
       reset_input();
       return;
     }
@@ -1140,6 +1148,7 @@ retry_sync:
                   check_rf_sync(hightime[CC_INSTANCE], lowtime[CC_INSTANCE]) &&
                   check_rf_sync(b->zero.lowtime, b->zero.hightime)) {
           rf_router_status = RF_ROUTER_SYNC_RCVD;
+          g_reset_input_src = 6;
           reset_input();
           return;
 
@@ -1252,6 +1261,7 @@ retry_sync:
       /*  addbit(b, 0);*/
       /*  b->two.hightime = makeavg(b->zero.hightime, hightime[CC_INSTANCE]);
         b->two.lowtime  = makeavg(b->zero.lowtime,  lowtime[CC_INSTANCE]);*/
+        g_reset_input_src = 7;
         reset_input();
       }
       break;

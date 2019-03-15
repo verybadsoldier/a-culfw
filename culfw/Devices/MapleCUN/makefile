@@ -202,7 +202,7 @@ COMPILE = $(CC) $(CFLAGS) $(GENDEPFLAGS)
 
 all:
 	make TARGET=MapleCUNx4_W5100_BL BOOTLOADER=TRUE build clean2
-	make TARGET=MapleCUNx4_W5500_BL BOOTLOADER=TRUE build clean2
+#	make TARGET=MapleCUNx4_W5500_BL BOOTLOADER=TRUE build clean2
 
 MapleCUL: 
 	make TARGET=MapleCUL build 
