@@ -597,7 +597,7 @@ void reset_input(void)
 #endif
   bucket_array[CC_INSTANCE][bucket_in[CC_INSTANCE]].state = STATE_RESET;
 #if defined (HAS_IT) || defined (HAS_TCM97001)
-  packetCheckValues[CC_INSTANCE].isnotrep = 0;
+  // packetCheckValues[CC_INSTANCE].isnotrep = 0;  // vbs: this leads for me to repeated messages of IT remote controls
 #endif
 #ifdef SAM7
         HAL_timer_set_reload_register(CC_INSTANCE,0);
